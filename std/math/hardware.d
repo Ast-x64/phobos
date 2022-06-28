@@ -151,6 +151,17 @@ private:
             }
             else return sw & EXCEPTIONS_MASK;
         }
+        else version (RISCV_Any)
+        {
+            mixin(`
+            uint result = void;
+            asm pure nothrow @nogc
+            {
+                "frflags %0" : "=r" (result);
+            }
+            return result;
+            `);
+        }
         else version (LDC)
         {
             version (PPC_Any)
@@ -187,17 +198,6 @@ private:
         else version (ARM)
         {
             assert(false, "Not yet supported.");
-        }
-        else version (RISCV_Any)
-        {
-            mixin(`
-            uint result = void;
-            asm pure nothrow @nogc
-            {
-                "frflags %0" : "=r" (result);
-            }
-            return result;
-            `);
         }
         else
             assert(0, "Not yet supported");
@@ -648,9 +648,9 @@ nothrow @nogc:
         enum : ExceptionMask
         {
             inexactException      = 0x01,
-            divByZeroException    = 0x02,
-            underflowException    = 0x04,
-            overflowException     = 0x08,
+            divByZeroException    = 0x08,
+            underflowException    = 0x02,
+            overflowException     = 0x04,
             invalidException      = 0x10,
             severeExceptions   = overflowException | divByZeroException
                                  | invalidException,
@@ -905,7 +905,18 @@ private:
     // Read from the control register
     package(std.math) static ControlState getControlState() @trusted pure
     {
-        version (LDC)
+        version (RISCV_Any)
+        {
+            mixin(`
+            ControlState cont;
+            asm pure nothrow @nogc
+            {
+                "frcsr %0" : "=r" (cont);
+            }
+            return cont;
+            `);
+        }
+        else version (LDC)
         {
             ControlState cont;
 
@@ -979,17 +990,6 @@ private:
                 fstcw cont;
             }
             return cont;
-        }
-        else version (RISCV_Any)
-        {
-            mixin(`
-            ControlState cont;
-            asm pure nothrow @nogc
-            {
-                "frcsr %0" : "=r" (cont);
-            }
-            return cont;
-            `);
         }
         else
             assert(0, "Not yet supported");
